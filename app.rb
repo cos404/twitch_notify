@@ -12,17 +12,15 @@ check_timeout = ENV['CHECK_TIMEOUT'] || 10
   access_token: ENV['ACCESS_TOKEN']
 )
 
-# streamers_list = YAML.load_file('streamers.yml')
-
 File.open('streamers.yml', 'w+') do |f|
-  puts @streamers_list = YAML.load_file(f)
+  @streamers_list = YAML.load_file(f)
 end
 
 Telegram::Bot::Client.run(token) do |bot|
   # STREAM CHECKOUT
   Thread.new do
     loop do
-      puts 'Stream check: RUN'
+      puts "#{Time.now.strftime('%H:%M')} Stream check: RUN"
       if @streamers_list
         @streamers_list.length.times do |group_num|
           keys = @streamers_list.keys[group_num]
@@ -32,7 +30,7 @@ Telegram::Bot::Client.run(token) do |bot|
             streamer = chat_id[streamer_num]
             result = @twitch.stream(streamer[0])
 
-            puts "#{Time.now.strftime('%H:%M')} Stream: #{streamer[0]}."
+            puts "Stream: #{streamer[0]}."
 
             bot.api.sendMessage(chat_id: keys, text: "https://www.twitch.tv/#{streamer[0]}") if result['stream'] && !streamer[1]
 
@@ -41,8 +39,8 @@ Telegram::Bot::Client.run(token) do |bot|
           end
         end
       end
-        puts 'Stream check: END'
-        sleep check_timeout
+      puts "#{Time.now.strftime('%H:%M')} Stream check: END"
+      sleep check_timeout
     end
   end
 
