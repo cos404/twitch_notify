@@ -1,8 +1,6 @@
 require "./twitch-api/request.rb"
 
 class Base include Request
-
-
   def initialize(options = {})
     @client_id = options[:client_id] || nil
     @secret_key = options[:secret_key] || nil
@@ -18,4 +16,9 @@ class Base include Request
     get(url)
   end
 
+  def users(user_name)
+    path = "/users/#{stream_name}"
+    url = @base_url + path + "?client_id=#{@client_id}";
+    get(url)
+  end
 end

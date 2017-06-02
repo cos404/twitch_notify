@@ -4,38 +4,39 @@ require './twitch-api/base.rb'
 
 token = ENV['TOKEN']
 
-@twitch = Base.new({
+@twitch = Base.new(
   client_id: ENV['CLIENT_ID'],
   secret_key: ENV['SECRET_KEY'],
   redirect_uri: 'https://localhost:3000/',
-  scope: ["user_read", "channel_read", "user_follows_edit"],
+  scope: %w[user_read channel_read user_follows_edit],
   access_token: ENV['ACCESS_TOKEN']
-})
+)
 
-last_update = YAML.load_file('streamers.yml')
+streamers_list = YAML.load_file('streamers.yml')
 
 Telegram::Bot::Client.run(token) do |bot|
-  puts "Run"
-
   # STREAM CHECKOUT
   Thread.new do
     loop do
-      puts "Stream check: RUN"
-      last_update.length.times do |group_num|
-        keys = last_update.keys[group_num]
+      puts 'Stream check: RUN'
+      streamers_list.length.times do |group_num|
+        keys = streamers_list.keys[group_num]
+        chat_id = streamers_list[keys]
 
-        last_update[keys].length.times do |streamer_num|
+        chat_id.length.times do |streamer_num|
+          streamer = chat_id[streamer_num]
+          result = @twitch.stream(streamer[0])
 
-          streamer_name = last_update[keys][streamer_num][0]
-          result = @twitch.stream(streamer_name)
+          puts "#{Time.now.strftime("%H:%M")} Stream: #{streamer[0]}."
 
-          bot.api.sendMessage(chat_id: keys, text: "#{streamer_name}: Stream RUN") if result["stream"] && !last_update[keys][streamer_num][1]
-          last_update[keys][streamer_num][1] = true if result["stream"]
-          last_update[keys][streamer_num][1] = false unless result["stream"]
+          bot.api.sendMessage(chat_id: keys, text: "https://www.twitch.tv/#{streamer[0]}") if result['stream'] && !streamer[1]
+
+          streamer[1] = true if result['stream']
+          streamer[1] = false unless result['stream']
         end
       end
-      puts "Stream check: END"
-      sleep 300
+      puts 'Stream check: END'
+      sleep 10
     end
   end
 
@@ -45,17 +46,17 @@ Telegram::Bot::Client.run(token) do |bot|
     chat_id = message.chat.id
     first_name = message.from.first_name
     case msg
-      when '/start'
-        bot.api.sendMessage(chat_id: chat_id, text: "Hello, #{first_name}")
-      when /\/add (.+)/
-        streamer = msg.sub(/\/add /, "")
-        last_update = {} unless last_update
-        last_update[chat_id] = [] if last_update[chat_id] == nil
-        last_update[chat_id] << [streamer, false] unless last_update[chat_id].include?(streamer)
+    when '/start'
+      bot.api.sendMessage(chat_id: chat_id, text: "Hello, #{first_name}")
+    when %r{\/add (.+)}
+      streamer = msg.sub(%r{\/add }, '').gsub(" ", "")
+      streamers_list = {} unless streamers_list
+      streamers_list[chat_id] = [] if streamers_list[chat_id].nil?
+      streamers_list[chat_id] << [streamer, false] unless streamers_list[chat_id].include?(streamer)
 
-        File.open('streamers.yml','w+') do |f|
-          f.write(last_update.to_yaml)
-        end
+      File.open('streamers.yml', 'w+') do |f|
+        f.write(streamers_list.to_yaml)
+      end
     end
   end
 end
