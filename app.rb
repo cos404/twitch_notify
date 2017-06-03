@@ -12,9 +12,8 @@ check_timeout = ENV['CHECK_TIMEOUT'] || 10
   access_token: ENV['ACCESS_TOKEN']
 )
 
-File.open('streamers.yml', 'w+') do |f|
-  @streamers_list = YAML.load_file(f)
-end
+File.new('streamers.yml', 'w') unless File.exists?('streamers.yml')
+@streamers_list = YAML.load_file('streamers.yml')
 
 Telegram::Bot::Client.run(token) do |bot|
   # STREAM CHECKOUT
@@ -62,7 +61,9 @@ Telegram::Bot::Client.run(token) do |bot|
         streamer = msg.sub(%r{\/add }, '').delete(' ')
         @streamers_list = {} unless @streamers_list
         @streamers_list[chat_id] = [] if @streamers_list[chat_id].nil?
-        @streamers_list[chat_id] << [streamer, false] unless @streamers_list[chat_id].include?(streamer)
+        @streamers_list[chat_id] << [streamer, false] unless @streamers_list[chat_id].any? do |e|
+          e[0] == streamer
+        end
 
         File.open('streamers.yml', 'w+') do |f|
           f.write(@streamers_list.to_yaml)
