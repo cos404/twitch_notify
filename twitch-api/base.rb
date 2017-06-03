@@ -17,7 +17,7 @@ class Base include Request
   end
 
   def users(user_name)
-    path = "/users/#{stream_name}"
+    path = "/users/#{user_name}"
     url = @base_url + path + "?client_id=#{@client_id}";
     get(url)
   end

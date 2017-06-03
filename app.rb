@@ -12,7 +12,7 @@ check_timeout = ENV['CHECK_TIMEOUT'] || 10
   access_token: ENV['ACCESS_TOKEN']
 )
 
-File.new('streamers.yml', 'w') unless File.exists?('streamers.yml')
+File.new('streamers.yml', 'w') unless File.exist?('streamers.yml')
 @streamers_list = YAML.load_file('streamers.yml')
 
 Telegram::Bot::Client.run(token) do |bot|
@@ -59,23 +59,27 @@ Telegram::Bot::Client.run(token) do |bot|
         bot.api.sendMessage(chat_id: chat_id, text: 'You not admin!')
       else
         streamer = msg.sub(%r{\/add }, '').delete(' ')
-        @streamers_list = {} unless @streamers_list
-        @streamers_list[chat_id] = [] if @streamers_list[chat_id].nil?
-        @streamers_list[chat_id] << [streamer, false] unless @streamers_list[chat_id].any? do |e|
-          e[0] == streamer
-        end
+        if !@twitch.users(streamer)["display_name"].nil?
+          @streamers_list = {} unless @streamers_list
+          @streamers_list[chat_id] = [] if @streamers_list[chat_id].nil?
+          @streamers_list[chat_id] << [streamer, false] unless @streamers_list[chat_id].any? do |e|
+            e[0] == streamer
+          end
 
-        File.open('streamers.yml', 'w+') do |f|
-          f.write(@streamers_list.to_yaml)
+          File.open('streamers.yml', 'w+') do |f|
+            f.write(@streamers_list.to_yaml)
+          end
+        else
+          bot.api.sendMessage(chat_id: chat_id, text: "Streamer not found!")
         end
       end
     when '/list'
       if @streamers_list && @streamers_list[chat_id]
-        list = ""
+        list = ''
         @streamers_list[chat_id].each do |e|
-          list = list + "#{e[0]}\n"
+          list += "#{e[0]}\n"
         end
-        bot.api.sendMessage(chat_id: chat_id, text: "#{list}")
+        bot.api.sendMessage(chat_id: chat_id, text: list)
       end
     end
   end
