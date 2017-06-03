@@ -69,6 +69,14 @@ Telegram::Bot::Client.run(token) do |bot|
           f.write(@streamers_list.to_yaml)
         end
       end
+    when '/list'
+      if @streamers_list && @streamers_list[chat_id]
+        list = ""
+        @streamers_list[chat_id].each do |e|
+          list = list + "#{e[0]}\n"
+        end
+        bot.api.sendMessage(chat_id: chat_id, text: "#{list}")
+      end
     end
   end
 end
